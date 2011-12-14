@@ -1,0 +1,43 @@
+*MongoDB backend
+
+MongoDB backend for OpenERP
+
+This is a functional, but very early release.
+This module is initially intended to store very large amounts 
+of data, but not accessed frequently.
+
+*Requirements
+
+- MongoDB server 2.x
+- Pymongo 2.0.1 at least.
+
+This module is tested in OpenERP server version 5.0
+
+*Installation
+
+You can install this module like any other OpenERP module.
+
+The connection to the MongoDB server, defaults to:
+
+- MongoDB database name = 'openerp' (mongodb_name)
+- MongoDB server host = 'localhost' (mongodb_host)
+- MongoDB server port = '27017' (mongodb_port)
+
+You can use your own connection parameters by adding to the OpenERP 
+configuration file the keywords in brackets.
+
+*Basics
+
+from mongodb_backend import osv_mongodb
+
+class MongoDBStoredObject(osv_mongodb.osv_mongodb):
+    '''Define here the object as usual'''
+
+MongoDBStoredObject()
+
+*Restrictions
+
+It only allows all basic data fields (integer, float, char, boolean, etc...).
+It do not allow relational fields like one2many, many2many, and many2one.
+Browse method it is not implemented by now.
+Inheritance is not tested.
