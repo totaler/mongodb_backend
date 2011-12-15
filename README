@@ -38,6 +38,6 @@ MongoDBStoredObject()
 *Restrictions
 
 It only allows all basic data fields (integer, float, char, boolean, etc...).
-It do not allow relational fields like one2many, many2many, and many2one.
-Browse method it is not implemented by now.
+It does not allow relational fields like one2many, many2many, and many2one.
+Browse method is not implemented by now.
 Inheritance is not tested.
