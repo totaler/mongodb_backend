@@ -87,7 +87,7 @@ class MDBConn(object):
         """
         new_domain = {}
         for field, operator, value in domain:
-            clause = OPERATOR_MAPPING[operator](field, value)
+            clause = self.OPERATOR_MAPPING[operator](field, value)
             if field in new_domain.keys():
                 new_domain[field].update(clause[field])
             else:
