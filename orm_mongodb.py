@@ -209,7 +209,7 @@ class orm_mongodb(orm.orm_template):
         #it can contain asc or desc 
         #Otherwise is not allowed
         if len(mongo_order) == 1:
-            order_desc = re.compile('^(([a-z0-9_]+|"[a-z0-9_]+")( *desc)?( *, *|))+$', re.I)
+            order_desc = re.compile('^(([a-z0-9_]+|"[a-z0-9_]+")( *desc)+( *, *|))+$', re.I)
             if order_desc.match(mongo_order[0].strip()):
                 return [(mongo_order[0].partition(' ')[0].strip(),
                         pymongo.DESCENDING)]
