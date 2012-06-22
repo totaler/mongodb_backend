@@ -92,6 +92,10 @@ class orm_mongodb(orm.orm_template):
         return [key for key, val in self._columns.iteritems()
                       if val._type in ('date', 'datetime')]
 
+    def get_bool_fields(self):
+        return [key for key, val in self._columns.iteritems()
+                      if val._type in ('boolean')]
+        
     def transform_date_field(self, field, value, action):
 
         if not value:
@@ -131,14 +135,16 @@ class orm_mongodb(orm.orm_template):
                                                         val[date_field],
                                                             'write')
 
-    def search_date_fields(self, args):
+    def search_trans_fields(self, args):
         date_fields = self.get_date_fields()
+        bool_fields = self.get_bool_fields()
         for arg in args:
             if arg[0] in date_fields:
                 arg[2] = self.transform_date_field(arg[0],
                                                    arg[2],
                                                    'write')
-        
+            if arg[0] in bool_fields:
+                arg[2] = bool(arg[2])        
 
     def read(self, cr, user, ids, fields=None, context=None, load='_classic_read'):
 
@@ -295,7 +301,7 @@ class orm_mongodb(orm.orm_template):
         #Domain has to be list of lists
         tmp_args = [isinstance(arg, tuple) and list(arg) or arg for arg in args]
         collection = mdbpool.get_collection(self._table)
-        self.search_date_fields(tmp_args)
+        self.search_trans_fields(tmp_args)
 
         new_args = mdbpool.translate_domain(tmp_args)
         if not context:
