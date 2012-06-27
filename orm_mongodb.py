@@ -311,7 +311,11 @@ class orm_mongodb(orm.orm_template):
             context = {}
         self.pool.get('ir.model.access').check(cr, user, 
                         self._name, 'read', context=context)
-
+        #Performance problems for counting in mongodb
+        #Only count when forcing. Else return limit
+        #https://jira.mongodb.org/browse/SERVER-1752
+        if not context.get('force_count', False) and count:
+            return limit
         if count:
             return collection.find(
                     new_args,
