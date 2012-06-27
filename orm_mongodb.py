@@ -195,7 +195,10 @@ class orm_mongodb(orm.orm_template):
 
         res = []
         if len(fields_pre):
-            mongo_cr = collection.find({'id': {'$in': ids}}, fields_pre + ['id'])
+            order = self._compute_order(cr, user)
+            mongo_cr = collection.find({'id': {'$in': ids}},
+                                       fields_pre + ['id'],
+                                       sort=order)
             res = [x for x in mongo_cr]
         else:
             res = map(lambda x: {'id': x}, ids)
