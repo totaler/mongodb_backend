@@ -165,6 +165,10 @@ class orm_mongodb(orm.orm_template):
                 if key == '_id':
                     del r[key]
                     continue
+                #WTF. id field is not always readed as int
+                if key == 'id':
+                    r[key] = int(v)
+                    continue
                 if v is None:
                     r[key] = False
                 else:
