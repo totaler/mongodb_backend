@@ -25,7 +25,7 @@ from osv.orm import except_orm
 import netsvc
 import re
 import pymongo
-import datetime
+from datetime import datetime
 
 #mongodb stuff
 try:
@@ -88,6 +88,64 @@ class orm_mongodb(orm.orm_template):
         super(orm_mongodb, self).__init__(cr)
         cr.execute('delete from wkf_instance where res_type=%s', (self._name,))
 
+    def get_date_fields(self):
+        return [key for key, val in self._columns.iteritems()
+                      if val._type in ('date', 'datetime')]
+
+    def get_bool_fields(self):
+        return [key for key, val in self._columns.iteritems()
+                      if val._type in ('boolean')]
+        
+    def transform_date_field(self, field, value, action):
+
+        if not value:
+            return value
+        
+        if self._columns[field]._type == 'date':
+            date_format = '%Y-%m-%d'
+        elif self._columns[field]._type == 'datetime':
+            date_format = '%Y-%m-%d %H:%M:%S'
+        
+        if action == 'read':
+            return value.strftime(date_format)
+        elif action == 'write':
+            #When searching datetime objects, string do not take time
+            only_date = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+            if only_date.match(value):
+                date_format = '%Y-%m-%d'
+            return datetime.strptime(value, date_format)                        
+
+    def read_date_fields(self, fields, vals):
+        date_fields = self.get_date_fields()
+        date_fields_to_read = list(set(fields) & set(date_fields)) 
+        if date_fields_to_read:
+            for val in vals:
+                for date_field in date_fields_to_read:
+                    val[date_field] = self.transform_date_field(date_field,
+                                                            val[date_field],
+                                                                'read')
+
+    def write_date_fields(self, val):
+        date_fields = self.get_date_fields()
+        fields = val.keys()
+        date_fields_to_write = list(set(fields) & set(date_fields)) 
+        if date_fields_to_write:
+            for date_field in date_fields_to_write:
+                val[date_field] = self.transform_date_field(date_field,
+                                                        val[date_field],
+                                                            'write')
+
+    def search_trans_fields(self, args):
+        date_fields = self.get_date_fields()
+        bool_fields = self.get_bool_fields()
+        for arg in args:
+            if arg[0] in date_fields:
+                arg[2] = self.transform_date_field(arg[0],
+                                                   arg[2],
+                                                   'write')
+            if arg[0] in bool_fields:
+                arg[2] = bool(arg[2])        
+
     def read(self, cr, user, ids, fields=None, context=None, load='_classic_read'):
 
         if not context:
@@ -106,6 +164,10 @@ class orm_mongodb(orm.orm_template):
                 #remove the '_id' field from the response
                 if key == '_id':
                     del r[key]
+                    continue
+                #WTF. id field is not always readed as int
+                if key == 'id':
+                    r[key] = int(v)
                     continue
                 if v is None:
                     r[key] = False
@@ -137,23 +199,33 @@ class orm_mongodb(orm.orm_template):
 
         res = []
         if len(fields_pre):
-            mongo_cr = collection.find({'id': {'$in': ids}}, fields_pre + ['id'])
+            order = self._compute_order(cr, user)
+            mongo_cr = collection.find({'id': {'$in': ids}},
+                                       fields_pre + ['id'],
+                                       sort=order)
             res = [x for x in mongo_cr]
         else:
             res = map(lambda x: {'id': x}, ids)
+        #Post process date and datetime fields
+        self.read_date_fields(fields_to_read, res)
+        
         return res
 
     def write(self, cr, user, ids, vals, context=None):
 
         db = mdbpool.get_db()
         collection = mdbpool.get_collection(self._table)
+        vals = vals.copy()
 
         if not ids:
             return True
+        
+        #Pre process date and datetime fields
+        self.write_date_fields(vals)
 
         #Log access
         vals.update({'write_uid': user, 
-                     'write_date': datetime.datetime.now(),
+                     'write_date': datetime.now(),
                     })
 
         #bulk update with modifiers, and safe mode
@@ -169,6 +241,7 @@ class orm_mongodb(orm.orm_template):
     def create(self, cr, user, vals, context=None):
 
         collection = mdbpool.get_collection(self._table)
+        vals = vals.copy()
         
         if not context:
             context = {}
@@ -188,9 +261,11 @@ class orm_mongodb(orm.orm_template):
                     {'_id': self._table}, 
                     {'$inc': {'counter': 1}})
         vals.update({'id': counter['counter']})
+        #Pre proces date fields
+        self.write_date_fields(vals)
         #Log access
         vals.update({'create_uid': user, 
-                     'create_date': datetime.datetime.now(),
+                     'create_date': datetime.now(),
                     })
         
         #Effectively create the record
@@ -229,15 +304,22 @@ class orm_mongodb(orm.orm_template):
 
     def search(self, cr, user, args, offset=0, limit=0, order=None,
             context=None, count=False):
-
+        #Make a copy of args for working
+        #Domain has to be list of lists
+        tmp_args = [isinstance(arg, tuple) and list(arg) or arg for arg in args]
         collection = mdbpool.get_collection(self._table)
+        self.search_trans_fields(tmp_args)
 
-        new_args = mdbpool.translate_domain(args)
+        new_args = mdbpool.translate_domain(tmp_args)
         if not context:
             context = {}
         self.pool.get('ir.model.access').check(cr, user, 
                         self._name, 'read', context=context)
-
+        #Performance problems for counting in mongodb
+        #Only count when forcing. Else return limit
+        #https://jira.mongodb.org/browse/SERVER-1752
+        if not context.get('force_count', False) and count:
+            return limit
         if count:
             return collection.find(
                     new_args,
@@ -267,8 +349,6 @@ class orm_mongodb(orm.orm_template):
 
         db = mdbpool.get_db()
         collection = mdbpool.get_collection(self._table)
-
-        
 
         if not ids:
             return True
