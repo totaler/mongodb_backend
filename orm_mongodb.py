@@ -52,7 +52,7 @@ class orm_mongodb(orm.orm_template):
         
         if not collection.find({'_id': self._table}).count():
             vals = {'_id': self._table,
-                    'counter': 0}
+                    'counter': 1}
             collection.save(vals)
 
         collection = db[self._table]
