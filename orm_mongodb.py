@@ -98,11 +98,12 @@ class orm_mongodb(orm.orm_template):
         return [key for key, val in self._columns.iteritems()
                       if val._type in ('boolean')]
 
-    def get_binary_fields(self):
+    def get_binary_gridfs_fields(self):
         return [key for key, val in self._columns.iteritems()
-                      if val._type in ('binary')]
+                      if val._type in ('binary')
+                         and getattr(val, 'gridfs', False)]
 
-    def transform_binary_field(self, field, value, action):
+    def transform_binary_gridfs_field(self, field, value, action):
         if not value:
             return value
         fs = gridfs.GridFS(mdbpool.get_db(), collection='fs')
@@ -117,28 +118,28 @@ class orm_mongodb(orm.orm_template):
             _id = fs.put(value)
             return str(_id)
 
-    def read_binary_fields(self, fields, vals):
-        binary_fields = self.get_binary_fields()
+    def read_binary_gridfs_fields(self, fields, vals):
+        binary_fields = self.get_binary_gridfs_fields()
         binary_fields_to_read = list(set(fields) & set(binary_fields))
         if binary_fields:
             for val in vals:
                 for binary_field in binary_fields_to_read:
-                    val[binary_field] = self.transform_binary_field(
+                    val[binary_field] = self.transform_binary_gridfs_field(
                         binary_field, val[binary_field], 'read'
                     )
 
-    def write_binary_fields(self, val):
-        binary_fields = self.get_binary_fields()
+    def write_binary_gridfs_fields(self, val):
+        binary_fields = self.get_binary_gridfs_fields()
         fields = val.keys()
         binary_fields_to_write = list(set(fields) & set(binary_fields))
         if binary_fields_to_write:
             for binary_field in binary_fields_to_write:
-                val[binary_field] = self.transform_binary_field(
+                val[binary_field] = self.transform_binary_gridfs_field(
                     binary_field, val[binary_field], 'write'
                 )
 
-    def unlink_binary_fields(self, collection, ids):
-        binary_fields = self.get_binary_fields()
+    def unlink_binary_gridfs_fields(self, collection, ids):
+        binary_fields = self.get_binary_gridfs_fields()
         if binary_fields:
             fs = gridfs.GridFS(mdbpool.get_db(), collection='fs')
             mongo_cr = collection.find({'id': {'$in': ids}}, binary_fields)
@@ -264,7 +265,7 @@ class orm_mongodb(orm.orm_template):
             res = map(lambda x: {'id': x}, ids)
         #Post process date and datetime fields
         self.read_date_fields(fields_to_read, res)
-        self.read_binary_fields(fields_to_read, res)
+        self.read_binary_gridfs_fields(fields_to_read, res)
         return res
 
     def write(self, cr, user, ids, vals, context=None):
@@ -278,7 +279,7 @@ class orm_mongodb(orm.orm_template):
 
         #Pre process date and datetime fields
         self.write_date_fields(vals)
-        self.write_binary_fields(vals)
+        self.write_binary_gridfs_fields(vals)
 
         #Log access
         vals.update({'write_uid': user, 
@@ -320,7 +321,7 @@ class orm_mongodb(orm.orm_template):
         vals.update({'id': counter['counter']})
         #Pre proces date fields
         self.write_date_fields(vals)
-        self.write_binary_fields(vals)
+        self.write_binary_gridfs_fields(vals)
         #Log access
         vals.update({'create_uid': user, 
                      'create_date': datetime.now(),
@@ -417,7 +418,7 @@ class orm_mongodb(orm.orm_template):
                                                'unlink', context=context)
 
         # Remove binary fields (files in gridfs)
-        self.unlink_binary_fields(collection, ids)
+        self.unlink_binary_gridfs_fields(collection, ids)
         #Remove with safe mode
         collection.remove({'id': {'$in': ids}}, True)
 
