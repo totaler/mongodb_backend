@@ -248,13 +248,14 @@ class orm_mongodb(orm.orm_template):
         self.pool.get('ir.model.access').check(cr, user, self._name, 
                                                'create', context=context)
 
-        #Default values
-        default = [f for f in self._columns.keys()
-                     if f not in vals]
+        if self._defaults:
+            #Default values
+            default = [f for f in self._columns.keys()
+                         if f not in vals]
 
-        if len(default):
-            default_values = self.default_get(cr, user, default, context)
-            vals.update(default_values)
+            if len(default):
+                default_values = self.default_get(cr, user, default, context)
+                vals.update(default_values)
 
         #Add incremental id to store vals
         counter = mdbpool.get_collection('counters').find_and_modify(
