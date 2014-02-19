@@ -380,6 +380,13 @@ class orm_mongodb(orm.orm_template):
         #https://jira.mongodb.org/browse/SERVER-1752
         if not context.get('force_count', False) and count:
             return limit
+        #In very large collections when no args
+        #orders all documents prior to return a result
+        #so when no filters, order by id that is sure that
+        #has an individual index and works very fast
+        if not args:
+            order = 'id'
+            
         if count:
             return collection.find(
                     new_args,
