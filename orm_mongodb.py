@@ -182,16 +182,6 @@ class orm_mongodb(orm.orm_template):
                                                             val[date_field],
                                                                 'read')
 
-    def write_date_fields(self, val):
-        date_fields = self.get_date_fields()
-        fields = val.keys()
-        date_fields_to_write = list(set(fields) & set(date_fields)) 
-        if date_fields_to_write:
-            for date_field in date_fields_to_write:
-                val[date_field] = self.transform_date_field(date_field,
-                                                        val[date_field],
-                                                            'write')
-
     def search_trans_fields(self, args):
         date_fields = self.get_date_fields()
         bool_fields = self.get_bool_fields()
@@ -202,6 +192,17 @@ class orm_mongodb(orm.orm_template):
                                                    'write')
             if arg[0] in bool_fields:
                 arg[2] = bool(arg[2])        
+
+    def preformat_write_fields(self, vals):
+
+        for key, value in vals.iteritems():
+            if key == 'id':
+                continue
+            if self._columns[key]._type in ('date', 'datetime'):
+                vals[key] = self.transform_date_field(key, value, 'write')
+            elif self._columns[key]._type in ('int', 'float'):
+                ss = self._columns[key]._symbol_set
+                vals[key] = ss[1](value)
 
     def read(self, cr, user, ids, fields=None, context=None, load='_classic_read'):
 
@@ -278,7 +279,7 @@ class orm_mongodb(orm.orm_template):
             return True
 
         #Pre process date and datetime fields
-        self.write_date_fields(vals)
+        self.preformat_write_fields(vals)
         self.write_binary_gridfs_fields(vals)
 
         #Log access
@@ -321,7 +322,7 @@ class orm_mongodb(orm.orm_template):
                     {'$inc': {'counter': 1}})
         vals.update({'id': counter['counter']})
         #Pre proces date fields
-        self.write_date_fields(vals)
+        self.preformat_write_fields(vals)
         self.write_binary_gridfs_fields(vals)
         #Log access
         vals.update({'create_uid': user, 
