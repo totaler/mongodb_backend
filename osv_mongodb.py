@@ -1,10 +1,10 @@
 # -*- encoding: utf-8 -*-
 ##############################################################################
 #
-#    OpenERP - MongoDB backend  
+#    OpenERP - MongoDB backend
 #    Copyright (C) 2011 Joan M. Grande <totaler@gmail.com>
 #    Thanks to Sharoon Thomas for the operator mapping code
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -23,11 +23,12 @@
 from osv.osv import module_class_list, module_list, class_pool
 import orm_mongodb
 
+
 class osv_mongodb(orm_mongodb.orm_mongodb):
     #__metaclass__ = inheritor
     def __new__(cls):
         module = str(cls)[6:]
-        module = module[:len(module)-1]
+        module = module[:len(module) - 1]
         module = module.split('.')[0][2:]
         if not hasattr(cls, '_module'):
             cls._module = module
