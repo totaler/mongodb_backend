@@ -67,11 +67,13 @@ class orm_mongodb(orm.orm_template):
         if db.error():
             raise except_orm('MongoDB create id field index error', db.error())
         #Update docs with new default values if they do not exist
-        def_fields = filter(lambda a: not collection.find(
-                                          {a:{'$exists': True}}).count(), 
+        #If we find at least one document with this field
+        #we assume that the field is present in the collection
+        def_fields = filter(lambda a: not collection.find_one(
+                                          {a:{'$exists': True}}), 
                                           self._defaults.keys())
         if len(def_fields):
-            logger.notifyChannel('orm', netsvc.LOG_DEBUG, 
+            logger.notifyChannel('orm', netsvc.LOG_INFO, 
                                  'setting default value for \
                                   %s of collection %s'% (def_fields, self._table))
             def_values = self.default_get(cr, 1, def_fields)
