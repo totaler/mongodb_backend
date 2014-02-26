@@ -43,7 +43,7 @@ class orm_mongodb(orm.orm_template):
                   'name_get', 'distinct_field_get', 'name_search', 'copy',
                   'import_data', 'search_count', 'exists']
 
-    def _auto_init(self, cr, context={}):
+    def _auto_init(self, cr, context=None):
         self._field_create(cr, context=context)
         logger = netsvc.Logger()
 
@@ -449,7 +449,7 @@ class orm_mongodb(orm.orm_template):
         # nothing to check in schema free...
         pass
 
-    def perm_read(self, cr, user, ids, context={}, details=True):
+    def perm_read(self, cr, user, ids, context=None, details=True):
 
         if not ids:
             return []
@@ -481,7 +481,7 @@ class orm_mongodb(orm.orm_template):
 
         return res
 
-    def default_get(self, cr, uid, fields_list, context={}):
+    def default_get(self, cr, uid, fields_list, context=None):
 
         value = {}
 
