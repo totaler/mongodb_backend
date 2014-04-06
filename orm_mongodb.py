@@ -20,7 +20,7 @@
 #
 ##############################################################################
 
-from osv import orm
+from osv import orm, fields
 from osv.orm import except_orm
 import netsvc
 import re
@@ -266,6 +266,32 @@ class orm_mongodb(orm.orm_template):
         #Post process date and datetime fields
         self.read_date_fields(fields_to_read, res)
         self.read_binary_gridfs_fields(fields_to_read, res)
+        # Function fields
+        fields_function = [
+            f for f in fields_to_read
+                if f in self._columns
+                    and isinstance(self._columns[f], fields.function)
+        ]
+        todo = {}
+        for f in fields_function:
+            todo.setdefault(self._columns[f]._multi, [])
+            todo[self._columns[f]._multi].append(f)
+        for key,val in todo.items():
+            if key:
+                res2 = self._columns[val[0]].get(cr, self, ids, val, user,
+                                                 context=context, values=res)
+                for pos in val:
+                    for record in res:
+                        record[pos] = res2[record['id']][pos]
+            else:
+                for f in val:
+                    res2 = self._columns[f].get(cr, self, ids, f, user,
+                                                context=context, values=res)
+                    for record in res:
+                        if res2 and (record['id'] in res2):
+                            record[f] = res2[record['id']]
+                        else:
+                            record[f] = []
         return res
 
     def write(self, cr, user, ids, vals, context=None):
