@@ -413,11 +413,6 @@ class orm_mongodb(orm.orm_template):
             context = {}
         self.pool.get('ir.model.access').check(cr, user,
                         self._name, 'read', context=context)
-        #Performance problems for counting in mongodb
-        #Only count when forcing. Else return limit
-        #https://jira.mongodb.org/browse/SERVER-1752
-        if not context.get('force_count', False) and count:
-            return limit
         #In very large collections when no args
         #orders all documents prior to return a result
         #so when no filters, order by id that is sure that
@@ -429,12 +424,10 @@ class orm_mongodb(orm.orm_template):
             return collection.find(
                     new_args,
                     {'id': 1},
-                    skip=int(offset),
-                    limit=int(limit),
                     timeout=True,
                     snapshot=False,
                     tailable=False,
-                    sort=self._compute_order(cr, user, order)).count()
+            ).count()
 
         mongo_cr = collection.find(
                     new_args,
