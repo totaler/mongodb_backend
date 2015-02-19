@@ -98,26 +98,41 @@ class MDBConn(object):
                 new_domain.update(clause)
         return new_domain
 
+    def mongo_connect(self):
+        '''Connects to mongo'''
+        try:
+            if tools.config['mongodb_user']:
+                uri_tmpl = 'mongodb://%s:%s@%s:%s/%s'
+                uri = uri_tmpl % (tools.config['mongodb_user'],
+                                  tools.config['mongodb_pass'],
+                                  tools.config['mongodb_host'],
+                                  tools.config['mongodb_port'],
+                                  tools.config['mongodb_name'])
+                connection = Connection(uri)
+            else:
+                connection = Connection(tools.config['mongodb_host'],
+                                        tools.config['mongodb_port'])
+        except Exception, e:
+            raise except_orm('MongoDB connection error', e)
+        return connection
+
     def __init__(self):
         def_db = tools.config.get('db_name', 'openerp')
         tools.config['mongodb_name'] = tools.config.get('mongodb_name', def_db)
         tools.config['mongodb_port'] = tools.config.get('mongodb_port', 27017)
         tools.config['mongodb_host'] = tools.config.get('mongodb_host',
                                                         'localhost')
-        tools.config['mongodb_user'] = tools.config.get('mongodb_user', 'erp')
-        tools.config['mongodb_pass'] = tools.config.get('mongodb_pass', 'erp')
+        tools.config['mongodb_user'] = tools.config.get('mongodb_user', '')
+        tools.config['mongodb_pass'] = tools.config.get('mongodb_pass', '')
 
-        try:
-            self.connection = Connection(tools.config['mongodb_host'],
-                                        tools.config['mongodb_port'])
-        except Exception, e:
-            raise except_orm('MongoDB connection error', e)
+        self.connection = self.mongo_connect()
 
     def get_collection(self, collection):
 
         try:
             db = self.connection[tools.config['mongodb_name']]
             collection = db[collection]
+
         except AutoReconnect:
             max_tries = 5
             count = 0
@@ -125,8 +140,8 @@ class MDBConn(object):
                 try:
                     logger.notifyChannel('MongoDB', netsvc.LOG_WARNING,
                                  'trying to reconnect...')
-                    con = Connection(tools.config['mongodb_host'],
-                             tools.config['mongodb_port'])
+                    con = self.mongo_connect()
+
                     db = con[tools.config['mongodb_name']]
                     collection = db[collection]
                     break
@@ -151,8 +166,8 @@ class MDBConn(object):
                 try:
                     logger.notifyChannel('MongoDB', netsvc.LOG_WARNING,
                                  'WARNING: MongoDB trying to reconnect...')
-                    con = Connection(tools.config['mongodb_host'],
-                             tools.config['mongodb_port'])
+                    con = self.mongo_connect()
+
                     db = con[tools.config['mongodb_name']]
                     break
                 except AutoReconnect:
