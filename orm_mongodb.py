@@ -284,6 +284,8 @@ class orm_mongodb(orm.orm_template):
         if not ids:
             return True
 
+        self.pool.get('ir.model.access').check(cr, user, self._name,
+                                               'write', context=context)
         #Pre process date and datetime fields
         self.preformat_write_fields(vals)
         self.write_binary_gridfs_fields(vals)
