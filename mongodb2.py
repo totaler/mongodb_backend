@@ -111,7 +111,7 @@ class MDBConn(object):
                 connection = Connection(uri)
             else:
                 connection = Connection(tools.config['mongodb_host'],
-                                        tools.config['mongodb_port'])
+                                        int(tools.config['mongodb_port']))
         except Exception, e:
             raise except_orm('MongoDB connection error', e)
         return connection
