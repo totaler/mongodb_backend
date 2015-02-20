@@ -1,10 +1,10 @@
 # -*- encoding: utf-8 -*-
 ##############################################################################
 #
-#    OpenERP - MongoDB backend  
+#    OpenERP - MongoDB backend
 #    Copyright (C) 2011 Joan M. Grande
 #    Thanks to Sharoon Thomas for the operator mapping code
-#    
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -28,8 +28,9 @@ import netsvc
 from osv.orm import except_orm
 from time import sleep
 
+
 class MDBConn(object):
-    
+
     OPERATOR_MAPPING = {
         '=': lambda l1, l3: {l1: l3},
         '!=': lambda l1, l3: {l1: {'$ne': l3}},
@@ -37,10 +38,10 @@ class MDBConn(object):
         '>=': lambda l1, l3: {l1: {'$gte': l3}},
         '<': lambda l1, l3: {l1: {'$lt': l3}},
         '>': lambda l1, l3: {l1: {'$gt': l3}},
-    
+
         'in': lambda l1, l3: {l1: {'$in': l3}},
         'not in': lambda l1, l3: {l1: {'$nin': l3}},
-    
+
         'like': lambda l1, l3: {l1: {
             '$regex': re.compile(l3.replace('%', '.*'))}},
         'not like': lambda l1, l3: {l1: {
@@ -58,7 +59,7 @@ class MDBConn(object):
         {'name': 'ol'}
         >>> translate_domain([('name', '!=', 'ol')])
         {'name': {'$ne': 'ol'}}
-    
+
         >>> translate_domain([('name', 'like', 'ol%')])
         {'name': {'$regex': <_sre.SRE_Pattern object at 0x...>}}
         >>> translate_domain([('name', 'not like', '%ol%')])
@@ -67,7 +68,7 @@ class MDBConn(object):
         {'name': <_sre.SRE_Pattern object at 0x...>}
         >>> translate_domain([('name', 'not ilike', '%ol%')])
         {'name': {'$not': <_sre.SRE_Pattern object at 0x...>}}
-    
+
         >>> translate_domain([('_id', 'in', [1, 2, 3])])
         {'_id': {'$in': [1, 2, 3]}}
         >>> translate_domain([('_id', 'not in', [1, 2, 3])])
@@ -82,8 +83,11 @@ class MDBConn(object):
         {'_id': {'$gt': 10}}
         >>> translate_domain([('_id', '>', 10), ('_id', '<', 15)])
         {'_id': {'$gt': 10, '$lt': 15}}
-        >>> translate_domain([('_id', '>', 10), ('_id', '<', 15), ('name', 'ilike', '%ol%')])
-        {'_id': {'$gt': 10, '$lt': 15}, 'name': <_sre.SRE_Pattern object at 0x...>}
+        >>> translate_domain([('_id', '>', 10),
+                              ('_id', '<', 15),
+                              ('name', 'ilike', '%ol%')])
+        {'_id': {'$gt': 10, '$lt': 15},
+         'name': <_sre.SRE_Pattern object at 0x...>}
         """
         new_domain = {}
         for field, operator, value in domain:
@@ -98,13 +102,14 @@ class MDBConn(object):
         def_db = tools.config.get('db_name', 'openerp')
         tools.config['mongodb_name'] = tools.config.get('mongodb_name', def_db)
         tools.config['mongodb_port'] = tools.config.get('mongodb_port', 27017)
-        tools.config['mongodb_host'] = tools.config.get('mongodb_host', 'localhost')
+        tools.config['mongodb_host'] = tools.config.get('mongodb_host',
+                                                        'localhost')
         tools.config['mongodb_user'] = tools.config.get('mongodb_user', 'erp')
         tools.config['mongodb_pass'] = tools.config.get('mongodb_pass', 'erp')
 
         try:
-            self.connection = Connection(tools.config['mongodb_host'], 
-                             tools.config['mongodb_port'])
+            self.connection = Connection(tools.config['mongodb_host'],
+                                         int(tools.config['mongodb_port']))
         except Exception, e:
             raise except_orm('MongoDB connection error', e)
 
@@ -118,20 +123,20 @@ class MDBConn(object):
             count = 0
             while count < max_tries:
                 try:
-                    logger.notifyChannel('MongoDB', netsvc.LOG_WARNING, 
+                    logger.notifyChannel('MongoDB', netsvc.LOG_WARNING,
                                  'trying to reconnect...')
-                    con = Connection(tools.config['mongodb_host'], 
+                    con = Connection(tools.config['mongodb_host'],
                              tools.config['mongodb_port'])
                     db = con[tools.config['mongodb_name']]
                     collection = db[collection]
                     break
                 except AutoReconnect:
-                    count +=1
+                    count += 1
                     sleep(0.5)
             if count == 4:
                 raise except_orm('MongoDB connection error', e)
         except Exception, e:
-            raise except_orm('MongoDB connection error', e)    
+            raise except_orm('MongoDB connection error', e)
 
         return collection
 
@@ -144,18 +149,18 @@ class MDBConn(object):
             count = 0
             while count < max_tries:
                 try:
-                    logger.notifyChannel('MongoDB', netsvc.LOG_WARNING, 
+                    logger.notifyChannel('MongoDB', netsvc.LOG_WARNING,
                                  'WARNING: MongoDB trying to reconnect...')
-                    con = Connection(tools.config['mongodb_host'], 
+                    con = Connection(tools.config['mongodb_host'],
                              tools.config['mongodb_port'])
                     db = con[tools.config['mongodb_name']]
                     break
                 except AutoReconnect:
-                    count +=1
+                    count += 1
                     sleep(0.5)
         except Exception, e:
             raise except_orm('MongoDB connection error', e)
-    
+
         return db
 
     def end_request(self):
