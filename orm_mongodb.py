@@ -65,6 +65,17 @@ class orm_mongodb(orm.orm_template):
                                 ttl=300,
                                 unique=True)
 
+        # Create auto indexs if field has select=True in field definition
+        # like PostgreSQL
+        created_idx = [
+            x['key'][0][0] for x in collection.index_information().values()
+                if 'key' in x and len(x['key']) == 1
+        ]
+        for field_name, field_obj in self._columns.iteritems():
+            if getattr(field_obj, 'select', False):
+                if field_name not in created_idx:
+                    collection.ensure_index(field_name)
+
         if db.error():
             raise except_orm('MongoDB create id field index error', db.error())
         #Update docs with new default values if they do not exist
