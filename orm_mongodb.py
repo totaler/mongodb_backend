@@ -383,6 +383,14 @@ class orm_mongodb(orm.orm_template):
         self.search_trans_fields(tmp_args)
 
         new_args = mdbpool.translate_domain(tmp_args)
+        # Implement exact match for fields char which defaults to ilike
+        for k in new_args:
+            field = self._columns.get(k)
+            if not field:
+                pass
+            if getattr(field, 'exact_match', False):
+                if isinstance(new_args[k], re._pattern_type):
+                    new_args[k] = new_args[k].pattern.lstrip('.*').rstrip('.*')
         if not context:
             context = {}
         self.pool.get('ir.model.access').check(cr, user,
