@@ -29,6 +29,9 @@ from osv.orm import except_orm
 from time import sleep
 
 
+logger = netsvc.Logger()
+
+
 class MDBConn(object):
 
     OPERATOR_MAPPING = {
