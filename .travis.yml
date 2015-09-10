@@ -1,0 +1,32 @@
+sudo: false
+language: python
+python:
+  - "2.7"
+env:
+  - SERVER_DIR=/tmp/server
+    OPENERP_DB_HOST=localhost
+    OPENERP_DB_USER=postgres
+    OPENERP_ROOT_PATH=${SERVER_DIR}/bin
+    OPENERP_ADDONS_PATH=${OPENERP_ROOT_PATH}/addons
+    PYTHONPATH=${OPENERP_ROOT_PATH}:${OPENERP_ADDONS_PATH}
+    DESTRAL_USE_TEMPLATE=False
+services:
+  - postgresql
+  - mongodb
+install:
+  - pip install lxml psycopg2 egenix-mx-base babel vatnumber reportlab==3.0
+  - pip install https://github.com/gisce/destral/archive/master.zip
+  - pip install "pymongo<3.0"
+  - mkdir -p ${SERVER_DIR}
+  - pushd ${SERVER_DIR}
+  - curl -L https://github.com/odoo/odoo/archive/5.0.tar.gz | tar xvzf - --strip-components 1
+  - pushd ${OPENERP_ADDONS_PATH}
+  - for m in `find ../../addons -name '__terp__.py' -exec dirname {} \;`; do ln -s $m .; done
+  - ln -s ${TRAVIS_BUILD_DIR} .
+  - popd
+  - popd
+
+script:
+  - destral -m mongodb_backend
+notifications:
+  irc: "irc.freenode.org#gisce-commits"
