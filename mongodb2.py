@@ -101,6 +101,18 @@ class MDBConn(object):
     def mongo_connect(self):
         '''Connects to mongo'''
         try:
+            def_db = tools.config.get('db_name', 'openerp')
+            tools.config['mongodb_name'] = tools.config.get(
+                'mongodb_name', def_db
+            )
+            tools.config['mongodb_port'] = tools.config.get(
+                'mongodb_port', 27017
+            )
+            tools.config['mongodb_host'] = tools.config.get(
+                'mongodb_host', 'localhost'
+            )
+            tools.config['mongodb_user'] = tools.config.get('mongodb_user', '')
+            tools.config['mongodb_pass'] = tools.config.get('mongodb_pass', '')
             if tools.config['mongodb_user']:
                 uri_tmpl = 'mongodb://%s:%s@%s:%s/%s'
                 uri = uri_tmpl % (tools.config['mongodb_user'],
@@ -117,15 +129,13 @@ class MDBConn(object):
         return connection
 
     def __init__(self):
-        def_db = tools.config.get('db_name', 'openerp')
-        tools.config['mongodb_name'] = tools.config.get('mongodb_name', def_db)
-        tools.config['mongodb_port'] = tools.config.get('mongodb_port', 27017)
-        tools.config['mongodb_host'] = tools.config.get('mongodb_host',
-                                                        'localhost')
-        tools.config['mongodb_user'] = tools.config.get('mongodb_user', '')
-        tools.config['mongodb_pass'] = tools.config.get('mongodb_pass', '')
+        self._connection = None
 
-        self.connection = self.mongo_connect()
+    @property
+    def connection(self):
+        if self._connection is None:
+            self._connection = self.mongo_connect()
+        return self._connection
 
     def get_collection(self, collection):
 
