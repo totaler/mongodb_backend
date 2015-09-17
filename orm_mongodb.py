@@ -20,7 +20,7 @@
 #
 ##############################################################################
 
-from osv import orm
+from osv import orm, fields
 from osv.orm import except_orm
 import netsvc
 import re
@@ -43,7 +43,9 @@ class orm_mongodb(orm.orm_template):
                   'name_get', 'distinct_field_get', 'name_search', 'copy',
                   'import_data', 'search_count', 'exists']
 
-    def _auto_init(self, cr, context=None):
+    _inherit_fields = {}
+
+    def _auto_init(self, cr, context={}):
         self._field_create(cr, context=context)
         logger = netsvc.Logger()
 
@@ -64,6 +66,17 @@ class orm_mongodb(orm.orm_template):
                                 deprecated_unique=None,
                                 ttl=300,
                                 unique=True)
+
+        # Create auto indexs if field has select=True in field definition
+        # like PostgreSQL
+        created_idx = [
+            x['key'][0][0] for x in collection.index_information().values()
+                if 'key' in x and len(x['key']) == 1
+        ]
+        for field_name, field_obj in self._columns.iteritems():
+            if getattr(field_obj, 'select', False):
+                if field_name not in created_idx:
+                    collection.ensure_index(field_name)
 
         if db.error():
             raise except_orm('MongoDB create id field index error', db.error())
@@ -181,6 +194,8 @@ class orm_mongodb(orm.orm_template):
         if date_fields_to_read:
             for val in vals:
                 for date_field in date_fields_to_read:
+                    if date_field not in val:
+                        continue
                     val[date_field] = self.transform_date_field(date_field,
                                                             val[date_field],
                                                                 'read')
@@ -273,6 +288,32 @@ class orm_mongodb(orm.orm_template):
         #Post process date and datetime fields
         self.read_date_fields(fields_to_read, res)
         self.read_binary_gridfs_fields(fields_to_read, res)
+        # Function fields
+        fields_function = [
+            f for f in fields_to_read
+                if f in self._columns
+                    and isinstance(self._columns[f], fields.function)
+        ]
+        todo = {}
+        for f in fields_function:
+            todo.setdefault(self._columns[f]._multi, [])
+            todo[self._columns[f]._multi].append(f)
+        for key,val in todo.items():
+            if key:
+                res2 = self._columns[val[0]].get(cr, self, ids, val, user,
+                                                 context=context, values=res)
+                for pos in val:
+                    for record in res:
+                        record[pos] = res2[record['id']][pos]
+            else:
+                for f in val:
+                    res2 = self._columns[f].get(cr, self, ids, f, user,
+                                                context=context, values=res)
+                    for record in res:
+                        if res2 and (record['id'] in res2):
+                            record[f] = res2[record['id']]
+                        else:
+                            record[f] = []
         return res
 
     def write(self, cr, user, ids, vals, context=None):
@@ -383,15 +424,18 @@ class orm_mongodb(orm.orm_template):
         self.search_trans_fields(tmp_args)
 
         new_args = mdbpool.translate_domain(tmp_args)
+        # Implement exact match for fields char which defaults to ilike
+        for k in new_args:
+            field = self._columns.get(k)
+            if not field:
+                pass
+            if getattr(field, 'exact_match', False):
+                if isinstance(new_args[k], re._pattern_type):
+                    new_args[k] = new_args[k].pattern.lstrip('.*').rstrip('.*')
         if not context:
             context = {}
         self.pool.get('ir.model.access').check(cr, user,
                         self._name, 'read', context=context)
-        #Performance problems for counting in mongodb
-        #Only count when forcing. Else return limit
-        #https://jira.mongodb.org/browse/SERVER-1752
-        if not context.get('force_count', False) and count:
-            return limit
         #In very large collections when no args
         #orders all documents prior to return a result
         #so when no filters, order by id that is sure that
@@ -403,12 +447,10 @@ class orm_mongodb(orm.orm_template):
             return collection.find(
                     new_args,
                     {'id': 1},
-                    skip=int(offset),
-                    limit=int(limit),
                     timeout=True,
                     snapshot=False,
                     tailable=False,
-                    sort=self._compute_order(cr, user, order)).count()
+            ).count()
 
         mongo_cr = collection.find(
                     new_args,
