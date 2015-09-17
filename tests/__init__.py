@@ -1,10 +1,10 @@
 import unittest
 
-from destral import testing
+from mongodb_backend import testing
 from expects import *
 
 
-class MongoDBBackendTest(testing.OOTestCase):
+class MongoDBBackendTest(testing.MongoDBTestCase):
 
     @unittest.skip('No views defined in this module')
     def test_all_views(self):
