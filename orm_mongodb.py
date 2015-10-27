@@ -43,6 +43,8 @@ class orm_mongodb(orm.orm_template):
                   'name_get', 'distinct_field_get', 'name_search', 'copy',
                   'import_data', 'search_count', 'exists']
 
+    _inherit_fields = {}
+
     def _auto_init(self, cr, context=None):
         self._field_create(cr, context=context)
         logger = netsvc.Logger()
