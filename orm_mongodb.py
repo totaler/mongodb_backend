@@ -183,6 +183,8 @@ class orm_mongodb(orm.orm_template):
         if date_fields_to_read:
             for val in vals:
                 for date_field in date_fields_to_read:
+                    if date_field not in val:
+                        continue
                     val[date_field] = self.transform_date_field(date_field,
                                                             val[date_field],
                                                                 'read')
