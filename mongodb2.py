@@ -110,14 +110,12 @@ class MDBConn(object):
         def_db = tools.config.get('db_name', 'openerp')
         tools.config['mongodb_name'] = tools.config.get('mongodb_name',
                                                         def_db)
-        tools.config['mongodb_port'] = tools.config.get('mongodb_port',
-                                                        27017)
-        tools.config['mongodb_host'] = tools.config.get('mongodb_host',
-                                                        'localhost')
+        tools.config['mongodb_port'] = tools.config.get('mongodb_port', '')
+        tools.config['mongodb_host'] = tools.config.get('mongodb_host', '')
         tools.config['mongodb_user'] = tools.config.get('mongodb_user', '')
         tools.config['mongodb_pass'] = tools.config.get('mongodb_pass', '')
-        tools.config['mongodb_uri'] = tools.config.get(
-            'mongodb_uri','mongodb://localhost:27017/'
+        tools.config['mongodb_uri'] = tools.config.get(  # Default
+            'mongodb_uri', 'mongodb://localhost:27017/'
         )
         uri = tools.config['mongodb_uri']  # with replicaset must use uri
         if not tools.config.get('mongodb_replicaset', False):
@@ -167,7 +165,7 @@ class MDBConn(object):
             db = self.connection[tools.config['mongodb_name']]
             collection = db[collection]
 
-        except AutoReconnect:
+        except AutoReconnect as ar_e:
             max_tries = 5
             count = 0
             while count < max_tries:
@@ -183,7 +181,7 @@ class MDBConn(object):
                     count += 1
                     sleep(0.5)
             if count == 4:
-                raise except_orm('MongoDB connection error', e)
+                raise except_orm('MongoDB connection error', ar_e)
         except Exception, e:
             raise except_orm('MongoDB connection error', e)
 

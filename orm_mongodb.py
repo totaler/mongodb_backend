@@ -447,9 +447,8 @@ class orm_mongodb(orm.orm_template):
             return collection.find(
                     new_args,
                     {'id': 1},
-                    timeout=True,
-                    snapshot=False,
-                    tailable=False,
+                    no_cursor_timeout=True,
+                    modifiers={"$snapshot": False},
             ).count()
 
         mongo_cr = collection.find(
@@ -457,9 +456,8 @@ class orm_mongodb(orm.orm_template):
                     {'id': 1},
                     skip=int(offset),
                     limit=int(limit),
-                    timeout=True,
-                    snapshot=False,
-                    tailable=False,
+                    no_cursor_timeout=True,
+                    modifiers={"$snapshot": False},
                     sort=self._compute_order(cr, user, order))
 
         res = [x['id'] for x in mongo_cr]
