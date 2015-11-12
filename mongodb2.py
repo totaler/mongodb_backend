@@ -21,8 +21,9 @@
 ##############################################################################
 
 import tools
-from pymongo import Connection
+from pymongo import MongoClient
 from pymongo.errors import AutoReconnect
+from pymongo.read_preferences import ReadPreference
 import re
 import netsvc
 from osv.orm import except_orm
@@ -101,32 +102,59 @@ class MDBConn(object):
                 new_domain.update(clause)
         return new_domain
 
-    def mongo_connect(self):
-        '''Connects to mongo'''
-        try:
-            def_db = tools.config.get('db_name', 'openerp')
-            tools.config['mongodb_name'] = tools.config.get(
-                'mongodb_name', def_db
-            )
-            tools.config['mongodb_port'] = tools.config.get(
-                'mongodb_port', 27017
-            )
-            tools.config['mongodb_host'] = tools.config.get(
-                'mongodb_host', 'localhost'
-            )
-            tools.config['mongodb_user'] = tools.config.get('mongodb_user', '')
-            tools.config['mongodb_pass'] = tools.config.get('mongodb_pass', '')
+    @property
+    def uri(self):
+        """ Mongo uri calculation with backward compatibility prior to 0.4v
+        """
+        def_db = tools.config.get('db_name', 'openerp')
+        tools.config['mongodb_name'] = tools.config.get('mongodb_name',
+                                                        def_db)
+        tools.config['mongodb_port'] = tools.config.get('mongodb_port', '')
+        tools.config['mongodb_host'] = tools.config.get('mongodb_host', '')
+        tools.config['mongodb_user'] = tools.config.get('mongodb_user', '')
+        tools.config['mongodb_pass'] = tools.config.get('mongodb_pass', '')
+        tools.config['mongodb_uri'] = tools.config.get(  # Default
+            'mongodb_uri', 'mongodb://localhost:27017/'
+        )
+
+        """
+            MONGODB-CR  - mongo 2.4, 2.6 - defecto para mantener compatibilidad
+            SCRAM-SHA-1 - mongo 3.x
+        """
+        tools.config['mongodb_auth'] = tools.config.get('mongodb_auth',
+                                                        'MONGODB-CR')
+
+        uri = tools.config['mongodb_uri']  # with replicaset must use uri
+        if not tools.config.get('mongodb_replicaset', False):
             if tools.config['mongodb_user']:
-                uri_tmpl = 'mongodb://%s:%s@%s:%s/%s'
+                # Auth
+                uri_tmpl = 'mongodb://%s:%s@%s:%s/%s?authMechanism=%s'
                 uri = uri_tmpl % (tools.config['mongodb_user'],
                                   tools.config['mongodb_pass'],
                                   tools.config['mongodb_host'],
                                   tools.config['mongodb_port'],
-                                  tools.config['mongodb_name'])
-                connection = Connection(uri)
-            else:
-                connection = Connection(tools.config['mongodb_host'],
-                                        int(tools.config['mongodb_port']))
+                                  tools.config['mongodb_name'],
+                                  tools.config['mongodb_auth'])
+            elif tools.config['mongodb_host'] and tools.config['mongodb_port']:
+                # No auth
+                uri_tmpl = 'mongodb://%s:%s/'
+                uri = uri_tmpl % (tools.config['mongodb_host'],
+                                  int(tools.config['mongodb_port']))
+        return uri
+
+    def mongo_connect(self):
+        '''Connects to mongo'''
+        try:
+            tools.config['mongodb_replicaset'] = tools.config.get(
+                'mongodb_replicaset', False
+            )
+            kwargs = {}
+            if tools.config['mongodb_replicaset']:
+                kwargs.update({'replicaSet': tools.config['mongodb_replicaset'],
+                               'read_preference': ReadPreference.PRIMARY_PREFERRED})
+
+            # MongoReplicaSetClient is deprecated alias for MongoClient in pymongo 3
+            connection = MongoClient(self.uri, **kwargs)
         except Exception, e:
             raise except_orm('MongoDB connection error', e)
         return connection
@@ -146,7 +174,7 @@ class MDBConn(object):
             db = self.connection[tools.config['mongodb_name']]
             collection = db[collection]
 
-        except AutoReconnect:
+        except AutoReconnect as ar_e:
             max_tries = 5
             count = 0
             while count < max_tries:
@@ -162,7 +190,7 @@ class MDBConn(object):
                     count += 1
                     sleep(0.5)
             if count == 4:
-                raise except_orm('MongoDB connection error', e)
+                raise except_orm('MongoDB connection error', ar_e)
         except Exception, e:
             raise except_orm('MongoDB connection error', e)
 
