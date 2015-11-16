@@ -21,7 +21,7 @@
 ##############################################################################
 
 import tools
-from pymongo import MongoClient
+from pymongo import MongoClient, MongoReplicaSetClient
 from pymongo.errors import AutoReconnect
 from pymongo.read_preferences import ReadPreference
 import re
@@ -148,13 +148,14 @@ class MDBConn(object):
             tools.config['mongodb_replicaset'] = tools.config.get(
                 'mongodb_replicaset', False
             )
+            mongo_client = MongoClient
             kwargs = {}
             if tools.config['mongodb_replicaset']:
                 kwargs.update({'replicaSet': tools.config['mongodb_replicaset'],
                                'read_preference': ReadPreference.PRIMARY_PREFERRED})
+                mongo_client = MongoReplicaSetClient
 
-            # MongoReplicaSetClient is deprecated alias for MongoClient in pymongo 3
-            connection = MongoClient(self.uri, **kwargs)
+            connection = mongo_client(self.uri, **kwargs)
         except Exception, e:
             raise except_orm('MongoDB connection error', e)
         return connection
