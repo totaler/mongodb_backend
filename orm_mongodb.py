@@ -45,7 +45,7 @@ class orm_mongodb(orm.orm_template):
 
     _inherit_fields = {}
 
-    def _auto_init(self, cr, context={}):
+    def _auto_init(self, cr, context=None):
         self._field_create(cr, context=context)
         logger = netsvc.Logger()
 
@@ -366,9 +366,14 @@ class orm_mongodb(orm.orm_template):
                 vals.update(default_values)
 
         #Add incremental id to store vals
-        counter = mdbpool.get_collection('counters').find_and_modify(
+        # Deprecated in pymongo 3.0.3
+        # counter = mdbpool.get_collection('counters').find_and_modify(
+        #             {'_id': self._table},
+        #             {'$inc': {'counter': 1}})
+        counter = mdbpool.get_collection('counters').find_one_and_update(
                     {'_id': self._table},
-                    {'$inc': {'counter': 1}})
+                    {'$inc': {'counter': 1}},
+                    upsert=True)
         vals.update({'id': counter['counter']})
         #Pre proces date fields
         self.preformat_write_fields(vals)
@@ -447,9 +452,8 @@ class orm_mongodb(orm.orm_template):
             return collection.find(
                     new_args,
                     {'id': 1},
-                    timeout=True,
-                    snapshot=False,
-                    tailable=False,
+                    no_cursor_timeout=True,
+                    modifiers={"$snapshot": False},
             ).count()
 
         mongo_cr = collection.find(
@@ -457,9 +461,8 @@ class orm_mongodb(orm.orm_template):
                     {'id': 1},
                     skip=int(offset),
                     limit=int(limit),
-                    timeout=True,
-                    snapshot=False,
-                    tailable=False,
+                    no_cursor_timeout=True,
+                    modifiers={"$snapshot": False},
                     sort=self._compute_order(cr, user, order))
 
         res = [x['id'] for x in mongo_cr]
