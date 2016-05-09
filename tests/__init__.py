@@ -9,6 +9,10 @@ class MongoDBBackendTest(testing.MongoDBTestCase):
     @unittest.skip('No views defined in this module')
     def test_all_views(self):
         pass
+    
+    @unittest.skip('No access rules defined')
+    def test_access_rules(self):
+        pass
 
     def test_mdbpool(self):
         from mongodb_backend.mongodb2 import mdbpool

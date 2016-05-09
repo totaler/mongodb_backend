@@ -76,7 +76,7 @@ class orm_mongodb(orm.orm_template):
         for field_name, field_obj in self._columns.iteritems():
             if getattr(field_obj, 'select', False):
                 if field_name not in created_idx:
-                    collection.ensure_index(field_name)
+                    collection.ensure_index(field_name, background=True)
 
         if db.error():
             raise except_orm('MongoDB create id field index error', db.error())
