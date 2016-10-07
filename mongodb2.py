@@ -59,39 +59,45 @@ class MDBConn(object):
         """Translate an OpenERP domain object to a corresponding
         MongoDB domain
 
-        >>> translate_domain([('name', '=', 'ol')])
+        >>> mdbconn = MDBConn()
+        >>> mdbconn.translate_domain([('name', '=', 'ol')])
         {'name': 'ol'}
-        >>> translate_domain([('name', '!=', 'ol')])
+        >>> mdbconn.translate_domain([('name', '!=', 'ol')])
         {'name': {'$ne': 'ol'}}
 
-        >>> translate_domain([('name', 'like', 'ol%')])
+        >>> mdbconn.translate_domain([('name', 'like', 'ol%')])
+        ... # doctest: +ELLIPSIS
         {'name': {'$regex': <_sre.SRE_Pattern object at 0x...>}}
-        >>> translate_domain([('name', 'not like', '%ol%')])
+        >>> mdbconn.translate_domain([('name', 'not like', '%ol%')])
+        ... # doctest: +ELLIPSIS
         {'name': {'$not': <_sre.SRE_Pattern object at 0x...>}}
-        >>> translate_domain([('name', 'ilike', '%ol%')])
+        >>> mdbconn.translate_domain([('name', 'ilike', '%ol%')])
+        ... # doctest: +ELLIPSIS
         {'name': <_sre.SRE_Pattern object at 0x...>}
-        >>> translate_domain([('name', 'not ilike', '%ol%')])
+        >>> mdbconn.translate_domain([('name', 'not ilike', '%ol%')])
+        ... # doctest: +ELLIPSIS
         {'name': {'$not': <_sre.SRE_Pattern object at 0x...>}}
 
-        >>> translate_domain([('_id', 'in', [1, 2, 3])])
+        >>> mdbconn.translate_domain([('_id', 'in', [1, 2, 3])])
         {'_id': {'$in': [1, 2, 3]}}
-        >>> translate_domain([('_id', 'not in', [1, 2, 3])])
+        >>> mdbconn.translate_domain([('_id', 'not in', [1, 2, 3])])
         {'_id': {'$nin': [1, 2, 3]}}
-        >>> translate_domain([('_id', '<=', 10)])
+        >>> mdbconn.translate_domain([('_id', '<=', 10)])
         {'_id': {'$lte': 10}}
-        >>> translate_domain([('_id', '<', 10)])
+        >>> mdbconn.translate_domain([('_id', '<', 10)])
         {'_id': {'$lt': 10}}
-        >>> translate_domain([('_id', '>=', 10)])
+        >>> mdbconn.translate_domain([('_id', '>=', 10)])
         {'_id': {'$gte': 10}}
-        >>> translate_domain([('_id', '>', 10)])
+        >>> mdbconn.translate_domain([('_id', '>', 10)])
         {'_id': {'$gt': 10}}
-        >>> translate_domain([('_id', '>', 10), ('_id', '<', 15)])
+        >>> mdbconn.translate_domain([('_id', '>', 10), ('_id', '<', 15)])
         {'_id': {'$gt': 10, '$lt': 15}}
-        >>> translate_domain([('_id', '>', 10),
-                              ('_id', '<', 15),
-                              ('name', 'ilike', '%ol%')])
-        {'_id': {'$gt': 10, '$lt': 15},
-         'name': <_sre.SRE_Pattern object at 0x...>}
+        >>> mdbconn.translate_domain([('_id', '>', 10),
+        ...                   ('_id', '<', 15),
+        ...                   ('name', 'ilike', '%ol%')])
+        ... # doctest: +ELLIPSIS
+        {'_id': {'$gt': 10, '$lt': 15}, \
+'name': <_sre.SRE_Pattern object at 0x...>}
         """
         new_domain = {}
         for field, operator, value in domain:
@@ -135,11 +141,11 @@ class MDBConn(object):
                                   tools.config['mongodb_port'],
                                   tools.config['mongodb_name'],
                                   tools.config['mongodb_auth'])
-            elif tools.config['mongodb_host'] and tools.config['mongodb_port']:
+            elif tools.config['mongodb_host']:
                 # No auth
                 uri_tmpl = 'mongodb://%s:%s/'
                 uri = uri_tmpl % (tools.config['mongodb_host'],
-                                  int(tools.config['mongodb_port']))
+                                  int(tools.config.get('mongodb_port', 27017)))
         return uri
 
     def mongo_connect(self):
