@@ -3,6 +3,12 @@ import unittest
 from mongodb_backend import testing
 from expects import *
 
+import doctest
+from mongodb_backend import mongodb2
+
+def load_tests(loader, tests, ignore):
+    tests.addTests(doctest.DocTestSuite(mongodb2))
+    return tests
 
 class MongoDBBackendTest(testing.MongoDBTestCase):
 
