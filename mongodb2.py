@@ -115,7 +115,7 @@ class MDBConn(object):
         def_db = tools.config.get('db_name', 'openerp')
         tools.config['mongodb_name'] = tools.config.get('mongodb_name',
                                                         def_db)
-        tools.config['mongodb_port'] = tools.config.get('mongodb_port', '')
+        tools.config['mongodb_port'] = tools.config.get('mongodb_port', '27017')
         tools.config['mongodb_host'] = tools.config.get('mongodb_host', '')
         tools.config['mongodb_user'] = tools.config.get('mongodb_user', '')
         tools.config['mongodb_pass'] = tools.config.get('mongodb_pass', '')
@@ -145,7 +145,7 @@ class MDBConn(object):
                 # No auth
                 uri_tmpl = 'mongodb://%s:%s/'
                 uri = uri_tmpl % (tools.config['mongodb_host'],
-                                  int(tools.config.get('mongodb_port', 27017)))
+                                  int(tools.config['mongodb_port']))
         return uri
 
     def mongo_connect(self):
