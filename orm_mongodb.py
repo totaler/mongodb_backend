@@ -28,6 +28,7 @@ import pymongo
 import gridfs
 from bson.objectid import ObjectId
 from datetime import datetime
+from tools.translate import _
 
 #mongodb stuff
 try:
@@ -409,14 +410,22 @@ class orm_mongodb(orm.orm_template):
                         pymongo.ASCENDING)]
         else:
             res = []
-            reg_expr = '^(([a-z0-9_]+|"[a-z0-9_]+")( *desc| *asc)+( *, *|))+$'
-            regex_order_mongo = re.compile(reg_expr, re.I)
+            reg_expr_desc = '^(([a-z0-9_]+|"[a-z0-9_]+")( *desc)+( *, *|))+$'
+            reg_expr_asc = '^(([a-z0-9_]+|"[a-z0-9_]+")( *asc)+( *, *|))+$'
+
+            regex_order_mongo_desc = re.compile(reg_expr_desc, re.I)
+            regex_order_mongo_asc = re.compile(reg_expr_asc, re.I)
             for field in mongo_order:
-                if regex_order_mongo.match(field.strip()):
-                    raise except_orm(_('Error'),
-                        _('Bad order declaration for model %s') % (self._name))
+                if regex_order_mongo_desc.match(field.strip()):
+                    res.append((field.strip().partition(' ')[0],
+                                pymongo.DESCENDING))
+                elif regex_order_mongo_asc.match(field.strip()):
+                    res.append((field.strip().partition(' ')[0],
+                                pymongo.ASCENDING))
                 else:
-                    res.append((field.strip(), pymongo.ASCENDING))
+                    raise except_orm(_('Error'),
+                                     _('Bad order declaration for model %s') % (
+                                     self._name))
         return res
 
     def search(self, cr, user, args, offset=0, limit=0, order=None,
