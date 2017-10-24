@@ -222,6 +222,18 @@ class orm_mongodb(orm.orm_template):
                 ss = self._columns[key]._symbol_set
                 vals[key] = ss[1](value)
 
+    def exists(self, cr, uid, ids, context=None):
+        collection = mdbpool.get_collection(self._table)
+
+        if not context:
+            context = {}
+        if not ids:
+            return False
+
+        mongo_cr = collection.find({'id': ids}, ['id'])
+        res = [x for x in mongo_cr]
+        return True if res else False
+
     def read(self, cr, user, ids, fields=None, context=None,
              load='_classic_read'):
 
