@@ -232,7 +232,7 @@ class orm_mongodb(orm.orm_template):
         if not fields:
             fields = self._columns.keys()
         select = ids
-        if isinstance(ids, (int, long)):
+        if not isinstance(ids, (list, tuple)):
             select = [ids]
         result = self._read_flat(cr, user, select, fields, context, load)
 
