@@ -28,6 +28,7 @@ import pymongo
 import gridfs
 from bson.objectid import ObjectId
 from datetime import datetime
+from numbers import Number
 
 #mongodb stuff
 try:
@@ -232,7 +233,7 @@ class orm_mongodb(orm.orm_template):
         if not fields:
             fields = self._columns.keys()
         select = ids
-        if isinstance(ids, (int, long)):
+        if isinstance(ids, Number):
             select = [ids]
         result = self._read_flat(cr, user, select, fields, context, load)
 
@@ -251,7 +252,7 @@ class orm_mongodb(orm.orm_template):
                 else:
                     continue
 
-        if isinstance(ids, (int, long)):
+        if isinstance(ids, Number):
             return result and result[0] or False
         return result
 
