@@ -29,11 +29,13 @@ import gridfs
 from bson.objectid import ObjectId
 from datetime import datetime
 from numbers import Number
+from tools.translate import _
 
 #mongodb stuff
 try:
     from mongodb2 import mdbpool
 except ImportError:
+    import sys
     sys.stderr.write("ERROR: Import mongodb module\n")
 
 
