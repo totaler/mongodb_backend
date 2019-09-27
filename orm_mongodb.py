@@ -49,6 +49,8 @@ class orm_mongodb(orm.orm_template):
     _inherit_fields = {}
 
     def _auto_init(self, cr, context=None):
+        if context is None:
+            context = {}
         self._field_create(cr, context=context)
         logger = netsvc.Logger()
 

@@ -1,6 +1,7 @@
 import unittest
 
-from mongodb_backend import testing
+from osv import osv, fields
+from mongodb_backend import testing, osv_mongodb
 from expects import *
 from destral.transaction import Transaction
 
@@ -39,6 +40,15 @@ def test_compute_order_parsing(self):
         self.assertEqual(res, [('test', 1), ('test2', -1)])
 
 
+class MongoModelTest(osv_mongodb.osv_mongodb):
+    _name = 'mongomodel.test'
+
+    _columns = {
+        'name': fields.char('Name', size=64),
+        'other_name': fields.char('Other name', size=64)
+    }
+
+
 class MongoDBBackendTest(testing.MongoDBTestCase):
 
     @unittest.skip('No views defined in this module')
@@ -70,3 +80,45 @@ class MongoDBBackendTest(testing.MongoDBTestCase):
         expect(self.openerp.config.options).to(have_keys(
             mongodb_name=self.database
         ))
+
+
+class MongoDBORMTests(testing.MongoDBTestCase):
+
+    def setUp(self):
+        self.txn = Transaction().start(self.database)
+
+    def tearDown(self):
+        self.txn.stop()
+
+    def create_model(self):
+        cursor = self.txn.cursor
+        MongoModelTest()
+        osv.class_pool[MongoModelTest._name].createInstance(
+            self.openerp.pool, 'mongodb_backend', cursor
+        )
+        mmt_obj = self.openerp.pool.get(MongoModelTest._name)
+        mmt_obj._auto_init(cursor)
+
+    def test_name_get(self):
+        self.create_model()
+        cursor = self.txn.cursor
+        uid = self.txn.user
+        mmt_obj = self.openerp.pool.get(MongoModelTest._name)
+        mmt_id = mmt_obj.create(cursor, uid, {
+            'name': 'Foo',
+            'other_name': 'Bar'
+        })
+
+        result = mmt_obj.name_get(cursor, uid, [mmt_id])
+        self.assertListEqual(
+            result,
+            [(mmt_id, 'Foo')]
+        )
+
+        # Changing the rec_name should use other field
+        MongoModelTest._rec_name = 'other_name'
+        result = mmt_obj.name_get(cursor, uid, [mmt_id])
+        self.assertListEqual(
+            result,
+            [(mmt_id, 'Bar')]
+        )
