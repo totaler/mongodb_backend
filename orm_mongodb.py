@@ -49,6 +49,8 @@ class orm_mongodb(orm.orm_template):
     _inherit_fields = {}
 
     def _auto_init(self, cr, context=None):
+        if context is None:
+            context = {}
         self._field_create(cr, context=context)
         logger = netsvc.Logger()
 
@@ -518,6 +520,10 @@ class orm_mongodb(orm.orm_template):
     def _check_removed_columns(self, cr, log=False):
         # nothing to check in schema free...
         pass
+
+    def name_get(self, cr, user, ids, context=None):
+        result = self.read(cr, user, ids, [self._rec_name])
+        return [(x['id'], x[self._rec_name]) for x in result]
 
     def perm_read(self, cr, user, ids, context=None, details=True):
 

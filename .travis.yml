@@ -10,10 +10,13 @@ env:
     OPENERP_ADDONS_PATH=${OPENERP_ROOT_PATH}/addons
     PYTHONPATH=${OPENERP_ROOT_PATH}:${OPENERP_ADDONS_PATH}
     DESTRAL_USE_TEMPLATE=False
+    MONGODB=3.0.15
 services:
   - postgresql
-  - mongodb
 install:
+  - wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB}.tgz
+  - tar xzf mongodb-linux-x86_64-${MONGODB}.tgz
+  - ${PWD}/mongodb-linux-x86_64-${MONGODB}/bin/mongod --version
   - easy_install egenix-mx-base
   - pip install lxml "psycopg2<2.8" babel vatnumber "reportlab==3.0"
   - pip install https://github.com/gisce/destral/archive/master.zip
@@ -27,7 +30,15 @@ install:
   - popd
   - popd
 
+before_script:
+  - mkdir ${PWD}/mongodb-linux-x86_64-${MONGODB}/data
+  - ${PWD}/mongodb-linux-x86_64-${MONGODB}/bin/mongod --dbpath ${PWD}/mongodb-linux-x86_64-${MONGODB}/data --logpath ${PWD}/mongodb-linux-x86_64-${MONGODB}/mongodb.log --fork
+
 script:
   - destral -m mongodb_backend
+
+after_script:
+  - pkill mongod
+
 notifications:
   irc: "irc.freenode.org#gisce-commits"
