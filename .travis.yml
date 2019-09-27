@@ -14,7 +14,8 @@ services:
   - postgresql
   - mongodb
 install:
-  - pip install lxml psycopg2 egenix-mx-base babel vatnumber reportlab==3.0
+  - easy_install egenix-mx-base
+  - pip install lxml "psycopg2<2.8" babel vatnumber "reportlab==3.0"
   - pip install https://github.com/gisce/destral/archive/master.zip
   - pip install "pymongo<3.0"
   - mkdir -p ${SERVER_DIR}
