@@ -68,7 +68,6 @@ class orm_mongodb(orm.orm_template):
         collection = db[self._table]
         #Create index for the id field
         collection.ensure_index([('id', pymongo.ASCENDING)],
-                                deprecated_unique=None,
                                 ttl=300,
                                 unique=True)
 
