@@ -67,10 +67,15 @@ class orm_mongodb(orm.orm_template):
 
         collection = db[self._table]
         #Create index for the id field
-        collection.ensure_index([('id', pymongo.ASCENDING)],
-                                ttl=300,
-                                unique=True)
-
+        try:
+            collection.ensure_index([('id', pymongo.ASCENDING)],
+                                    ttl=300,
+                                    unique=True)
+        except pymongo.errors.OperationFailure as e:
+            if e.details and "already exists with different options" in e.details.get("errmsg", " "):
+                pass
+            else:
+                raise
         # Create auto indexs if field has select=True in field definition
         # like PostgreSQL
         created_idx = [
@@ -519,10 +524,6 @@ class orm_mongodb(orm.orm_template):
     def _check_removed_columns(self, cr, log=False):
         # nothing to check in schema free...
         pass
-
-    def name_get(self, cr, user, ids, context=None):
-        result = self.read(cr, user, ids, [self._rec_name])
-        return [(x['id'], x[self._rec_name]) for x in result]
 
     def perm_read(self, cr, user, ids, context=None, details=True):
 
