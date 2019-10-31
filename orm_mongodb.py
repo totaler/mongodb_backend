@@ -525,6 +525,10 @@ class orm_mongodb(orm.orm_template):
         # nothing to check in schema free...
         pass
 
+    def name_get(self, cr, user, ids, context=None):
+        result = self.read(cr, user, ids, [self._rec_name])
+        return [(x['id'], x[self._rec_name]) for x in result]
+
     def perm_read(self, cr, user, ids, context=None, details=True):
 
         if not ids:
