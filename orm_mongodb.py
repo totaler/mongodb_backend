@@ -28,6 +28,7 @@ import pymongo
 import gridfs
 from bson.objectid import ObjectId
 from datetime import datetime
+from tools.translate import _
 
 #mongodb stuff
 try:
