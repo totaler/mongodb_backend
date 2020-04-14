@@ -30,6 +30,7 @@ from bson.objectid import ObjectId
 from datetime import datetime
 from numbers import Number
 from tools.translate import _
+import tools
 
 #mongodb stuff
 try:
@@ -113,7 +114,8 @@ class orm_mongodb(orm.orm_template):
 
     def __init__(self, cr):
         super(orm_mongodb, self).__init__(cr)
-        cr.execute('delete from wkf_instance where res_type=%s', (self._name,))
+        if not tools.config.get('db_readonly', False):
+            cr.execute('delete from wkf_instance where res_type=%s', (self._name,))
 
     def get_date_fields(self):
         return [key for key, val in self._columns.iteritems()
