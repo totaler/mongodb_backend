@@ -156,7 +156,7 @@ class MongoDBORMTests(testing.MongoDBTestCase):
             expect(len(m_ids)).to(equal(0))
 
         # write/search "False"
-        for value in [False, 0, []]:
+        for value in [False, 0, [], None, '']:
             mmt_obj.write(cursor, uid, [mmt_id], {'boolean_field': value})
 
             # read
