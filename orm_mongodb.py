@@ -232,6 +232,8 @@ class orm_mongodb(orm.orm_template):
             elif self._columns[key]._type in ('int', 'float'):
                 ss = self._columns[key]._symbol_set
                 vals[key] = ss[1](value)
+            elif self._columns[key]._type in ('boolean'):
+                vals[key] = bool(value)
 
     def exists(self, cr, uid, ids, context=None):
         collection = mdbpool.get_collection(self._table)
