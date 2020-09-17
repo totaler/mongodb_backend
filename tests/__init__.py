@@ -45,7 +45,8 @@ class MongoModelTest(osv_mongodb.osv_mongodb):
 
     _columns = {
         'name': fields.char('Name', size=64),
-        'other_name': fields.char('Other name', size=64)
+        'other_name': fields.char('Other name', size=64),
+        'boolean_field': fields.boolean('Boolean Field', size=64)
     }
 
 
@@ -106,7 +107,8 @@ class MongoDBORMTests(testing.MongoDBTestCase):
         mmt_obj = self.openerp.pool.get(MongoModelTest._name)
         mmt_id = mmt_obj.create(cursor, uid, {
             'name': 'Foo',
-            'other_name': 'Bar'
+            'other_name': 'Bar',
+            'boolean_field': True
         })
 
         result = mmt_obj.name_get(cursor, uid, [mmt_id])
@@ -122,3 +124,48 @@ class MongoDBORMTests(testing.MongoDBTestCase):
             result,
             [(mmt_id, 'Bar')]
         )
+
+    def test_boolean(self):
+        self.create_model()
+        cursor = self.txn.cursor
+        uid = self.txn.user
+        mmt_obj = self.openerp.pool.get(MongoModelTest._name)
+        # Create test
+        mmt_id = mmt_obj.create(cursor, uid, {
+            'name': 'Foo',
+            'other_name': 'Bar',
+            'boolean_field': True
+        })
+
+        readed_value = mmt_obj.read(cursor, uid, mmt_id, ['boolean_field'])['boolean_field']
+        expect(readed_value).to(equal(True))
+
+        # write/search "True"
+        for value in [True, 1, '1', [1, 2, ]]:
+            mmt_obj.write(cursor, uid, [mmt_id], {'boolean_field': value})
+
+            # read
+            readed_value = mmt_obj.read(cursor, uid, mmt_id, ['boolean_field'])['boolean_field']
+            expect(readed_value).to(equal(True))
+
+            # search Boolean
+            m_ids = mmt_obj.search(cursor, uid, [('boolean_field', '=', True)])
+            expect(len(m_ids)).to(be_above(0))
+
+            m_ids = mmt_obj.search(cursor, uid, [('boolean_field', '=', False)])
+            expect(len(m_ids)).to(equal(0))
+
+        # write/search "False"
+        for value in [False, 0, [], None, '']:
+            mmt_obj.write(cursor, uid, [mmt_id], {'boolean_field': value})
+
+            # read
+            readed_value = mmt_obj.read(cursor, uid, mmt_id, ['boolean_field'])['boolean_field']
+            expect(readed_value).to(equal(False))
+
+            # search Boolean
+            m_ids = mmt_obj.search(cursor, uid, [('boolean_field', '=', True)])
+            expect(len(m_ids)).to(equal(0))
+
+            m_ids = mmt_obj.search(cursor, uid, [('boolean_field', '=', False)])
+            expect(len(m_ids)).to(be_above(0))
