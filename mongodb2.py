@@ -36,7 +36,7 @@ logger = netsvc.Logger()
 class MDBConn(object):
 
     OPERATOR_MAPPING = {
-        '=': lambda l1, l3: {l1: l3},
+        '=': lambda l1, l3: {l1: {'$eq': l3}},
         '!=': lambda l1, l3: {l1: {'$ne': l3}},
         '<=': lambda l1, l3: {l1: {'$lte': l3}},
         '>=': lambda l1, l3: {l1: {'$gte': l3}},
@@ -61,7 +61,7 @@ class MDBConn(object):
 
         >>> mdbconn = MDBConn()
         >>> mdbconn.translate_domain([('name', '=', 'ol')])
-        {'name': 'ol'}
+        {'name': {'$eq': 'ol'}}
         >>> mdbconn.translate_domain([('name', '!=', 'ol')])
         {'name': {'$ne': 'ol'}}
 
