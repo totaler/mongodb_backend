@@ -158,7 +158,7 @@ class MDBConn(object):
             kwargs = {}
             if tools.config['mongodb_replicaset']:
                 kwargs.update({'replicaSet': tools.config['mongodb_replicaset'],
-                               'read_preference': ReadPreference.PRIMARY_PREFERRED})
+                               'read_preference': ReadPreference.SECONDARY_PREFERRED})
                 mongo_client = MongoReplicaSetClient
 
             connection = mongo_client(self.uri, **kwargs)
