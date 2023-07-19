@@ -112,7 +112,7 @@ class MDBConn(object):
             else:
                 connection = Connection(tools.config['mongodb_host'],
                                         int(tools.config['mongodb_port']))
-        except Exception, e:
+        except Exception as e:
             raise except_orm('MongoDB connection error', e)
         return connection
 
@@ -150,7 +150,7 @@ class MDBConn(object):
                     sleep(0.5)
             if count == 4:
                 raise except_orm('MongoDB connection error', e)
-        except Exception, e:
+        except Exception as e:
             raise except_orm('MongoDB connection error', e)
 
         return collection
@@ -173,7 +173,7 @@ class MDBConn(object):
                 except AutoReconnect:
                     count += 1
                     sleep(0.5)
-        except Exception, e:
+        except Exception as e:
             raise except_orm('MongoDB connection error', e)
 
         return db
